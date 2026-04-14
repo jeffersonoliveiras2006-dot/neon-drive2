@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Drive - JeffinBlack Platinum</title>
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00ff;
+            --neon-red: #ff3131;
+            --glass: rgba(255, 255, 255, 0.07);
+        }
+
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; color: #fff; }
+        canvas { display: block; }
+
+        .overlay {
+            position: fixed; inset: 0; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: center; z-index: 100; text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #loadingScreen h2 { font-weight: 200; letter-spacing: 10px; font-size: 14px; text-transform: uppercase; color: var(--neon-blue); }
+        #loadingScreen h1 { font-size: 45px; letter-spacing: 15px; margin: 10px 0; font-weight: 900; text-shadow: 0 0 20px var(--neon-blue); }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 50px;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.05);
+            max-width: 80%;
+        }
+
+        h1.game-title { font-size: 55px; margin: 0; background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; font-weight: 800; }
+        .creator-tag { color: var(--neon-pink); font-size: 10px; letter-spacing: 5px; margin-bottom: 30px; font-weight: bold; text-transform: uppercase; }
+        .menu-label { font-size: 12px; letter-spacing: 2px; color: #ccc; margin-bottom: 15px; text-transform: uppercase; }
+
+        button {
+            padding: 16px 30px; font-size: 13px; background: #fff; color: #000;
+            border: none; cursor: pointer; font-weight: 900;
+            transition: 0.3s; margin: 10px; width: 240px; text-transform: uppercase;
+            letter-spacing: 2px; border-radius: 8px;
+        }
+        button:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(255,255,255,0.3); }
+        .btn-secondary { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+        .color-options { display: flex; gap: 20px; margin: 20px 0; justify-content: center; }
+        .color-box {
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: 0.4s; position: relative;
+        }
+        .color-box.selected { border-color: #fff; transform: scale(1.3); box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+
+        .hud {
+            position: fixed; top: 25px; width: 100%; display: flex;
+            justify-content: space-around; color: #fff; font-size: 13px;
+            pointer-events: none; z-index: 10; font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px #000;
+        }
+
+        .controls { position: fixed; bottom: 40px; width: 100%; display: flex; justify-content: center; gap: 50px; z-index: 60; }
+        .btn-ctrl {
+            width: 80px; height: 80px; border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%; color: #fff; font-size: 30px;
+            display: flex; align-items: center; justify-content: center; background: var(--glass);
+            backdrop-filter: blur(5px); transition: 0.2s;
+        }
+        .btn-ctrl:active { background: #fff; color: #000; }
+    </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="overlay">
+    <h2>JeffinBlack apresenta</h2>
+    <h1>NEON DRIVE</h1>
+</div>
+
+<div id="ui" class="overlay" style="display:none;">
+    <div class="glass-panel">
+        <h1 class="game-title">NEON DRIVE</h1>
+        <div class="creator-tag">Jogo criado por JeffinBlack</div>
+        
+        <div class="menu-label">Escolha a cor do seu carro</div>
+        <div class="color-options">
+            <div class="color-box selected" style="background: var(--neon-pink);" data-color="#ff00ff"></div>
+            <div class="color-box" style="background: var(--neon-blue);" data-color="#00f2ff"></div>
+            <div class="color-box" style="background: var(--neon-red);" data-color="#ff3131"></div>
+            <div class="color-box" style="background: #39ff14;" data-color="#39ff14"></div>
+        </div>
+        
+        <button id="startBtn">Iniciar Jogo</button>
+    </div>
+</div>
+
+<div id="gameOverScreen" class="overlay" style="display:none;">
+    <div class="glass-panel" style="border-color: var(--neon-red);">
+        <h1 style="color:var(--neon-red); font-size: 45px; margin: 0; letter-spacing: 2px;">COLISÃO</h1>
+        <div style="margin: 25px 0;">
+            <p style="font-size:28px; margin: 0; font-weight: bold;">SCORE: <span id="finalScore">0</span></p>
+            <p style="font-size:12px; color:var(--neon-blue); letter-spacing: 2px;">RECORDE: <span id="finalBest">0</span></p>
+        </div>
+        <button id="restartBtn">Tentar Novamente</button><br>
+        <button id="backToMenuBtn" class="btn-secondary">Voltar ao Menu</button>
+    </div>
+</div>
+
+<div class="hud">
+    <span>SCORE: <b id="scoreVal" style="color:var(--neon-pink)">0</b></span>
+    <span>RECORDE: <b id="bestVal" style="color:var(--neon-blue)">0</b></span>
+    <span><b id="speedVal">0</b> KM/H</span>
+</div>
+
+<canvas id="game"></canvas>
+
+<div class="controls">
+    <div class="btn-ctrl" id="lBtn">◀</div>
+    <div class="btn-ctrl" id="rBtn">▶</div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let gameRunning = false;
+let score = 0;
+let highScore = localStorage.getItem("neonBest") || 0;
+let speed = 10;
+let roadOffset = 0;
+let player = { lane: 1, x: 0, y: 0, color: "#ff00ff" };
+let enemies = [];
+const lanes = [];
+let enemyTimer;
+
+document.getElementById("bestVal").innerText = highScore;
+
+// --- MÚSICA BEETHOVEN COMPLETA ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const beethovenNotes = [
+    { m: 392, b: 196, d: 0.15 }, { m: 392, b: 196, d: 0.15 }, { m: 392, b: 196, d: 0.15 }, { m: 311, b: 155, d: 1.0 },
+    { m: 349, b: 174, d: 0.15 }, { m: 349, b: 174, d: 0.15 }, { m: 349, b: 174, d: 0.15 }, { m: 293, b: 146, d: 1.0 },
+    { m: 392, b: 196, d: 0.2 }, { m: 466, b: 233, d: 0.2 }, { m: 523, b: 261, d: 0.2 }, { m: 587, b: 293, d: 1.2 }
+];
+let musicIndex = 0;
+
+function playNote(freq, vol, decay) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + decay);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + decay);
+}
+
+function playBeethoven() {
+    if (!gameRunning) return;
+    const n = beethovenNotes[musicIndex % beethovenNotes.length];
+    playNote(n.m, 0.2, n.d);
+    playNote(n.b, 0.1, n.d + 0.4);
+    musicIndex++;
+    setTimeout(playBeethoven, (n.d > 0.5 ? 1200 : 250) - (speed * 1.5));
+}
+
+// --- VISUAL CARRO ---
+function drawCar(x, y, color, isPlayer = false) {
+    ctx.save();
+    ctx.shadowBlur = 15; ctx.shadowColor = color;
+    ctx.fillStyle = color;
+    ctx.fillRect(x - 22, y, 44, 80); // Corpo
+    
+    // Vidros
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(x - 18, y + 15, 36, 25);
+    
+    // FARÓIS DIANTEIROS (Branco)
+    ctx.shadowBlur = 20; ctx.shadowColor = "#fff";
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x - 20, y, 12, 6); ctx.fillRect(x + 8, y, 12, 6);
+
+    // LANTERNAS TRASEIRAS (Vermelho Intenso)
+    ctx.shadowColor = "#ff0000";
+    ctx.fillStyle = "#ff0000";
+    ctx.fillRect(x - 20, y + 74, 12, 6); ctx.fillRect(x + 8, y + 74, 12, 6);
+    
+    ctx.restore();
+}
+
+// --- LOGICA JOGO ---
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const center = canvas.width / 2;
+    lanes[0] = center - 100; lanes[1] = center; lanes[2] = center + 100;
+    player.y = canvas.height - 150;
+}
+window.onresize = resize;
+resize();
+
+document.querySelectorAll('.color-box').forEach(box => {
+    box.onclick = () => {
+        document.querySelector('.color-box.selected').classList.remove('selected');
+        box.classList.add('selected');
+        player.color = box.dataset.color;
+    };
+});
+
+const move = (dir) => {
+    if(dir === 'L' && player.lane > 0) player.lane--;
+    if(dir === 'R' && player.lane < 2) player.lane++;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+};
+document.getElementById("lBtn").onclick = () => move('L');
+document.getElementById("rBtn").onclick = () => move('R');
+
+function spawnEnemy() {
+    if(!gameRunning) return;
+    enemies.push({ lane: Math.floor(Math.random()*3), y: -100, color: ["#fff", "#555", "#00f2ff"][Math.floor(Math.random()*3)] });
+    let rate = Math.max(200, 1600 - (speed * 30)); 
+    enemyTimer = setTimeout(spawnEnemy, rate);
+}
+
+function update() {
+    if(!gameRunning) return;
+    speed += 0.007;
+    score += Math.floor(speed / 10);
+    roadOffset += speed;
+    player.x += (lanes[player.lane] - player.x) * 0.25;
+
+    enemies.forEach((e, i) => {
+        e.y += speed * 0.95;
+        if(Math.abs(player.x - lanes[e.lane]) < 40 && Math.abs(player.y - e.y) < 75) {
+            gameRunning = false;
+            if(score > highScore) { highScore = score; localStorage.setItem("neonBest", score); }
+            document.getElementById("finalScore").innerText = score;
+            document.getElementById("finalBest").innerText = highScore;
+            document.getElementById("bestVal").innerText = highScore;
+            document.getElementById("gameOverScreen").style.display = "flex";
+        }
+        if(e.y > canvas.height) enemies.splice(i, 1);
+    });
+    document.getElementById("scoreVal").innerText = score;
+    document.getElementById("speedVal").innerText = Math.floor(speed * 15);
+}
+
+function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#080808";
+    ctx.fillRect(lanes[0]-65, 0, 330, canvas.height);
+    
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([40, 60]);
+    ctx.lineDashOffset = -roadOffset;
+    [lanes[0]+50, lanes[1]+50].forEach(lx => {
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, canvas.height); ctx.stroke();
+    });
+
+    drawCar(player.x, player.y, player.color, true);
+    enemies.forEach(e => drawCar(lanes[e.lane], e.y, e.color, false));
+}
+
+function loop() {
+    if(!gameRunning) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// --- ESTADOS ---
+setTimeout(() => {
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("ui").style.display = "flex";
+}, 2500);
+
+const start = () => {
+    audioCtx.resume();
+    document.getElementById("ui").style.display = "none";
+    document.getElementById("gameOverScreen").style.display = "none";
+    score = 0; speed = 10; enemies = []; player.lane = 1;
+    gameRunning = true; musicIndex = 0;
+    spawnEnemy(); playBeethoven(); loop();
+};
+
+document.getElementById("startBtn").onclick = start;
+document.getElementById("restartBtn").onclick = start;
+document.getElementById("backToMenuBtn").onclick = () => {
+    document.getElementById("gameOverScreen").style.display = "none";
+    document.getElementById("ui").style.display = "flex";
+};
+</script>
+</body>
+</html>
